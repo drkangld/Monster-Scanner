@@ -20,10 +20,36 @@
  *   Designed for an air-gapped Raspberry Pi nginx hotspot.
  */
 
-import { createCameraController, CameraState } from "./camera.js";
-
 (() => {
   "use strict";
+
+  const CameraAPI = window.MonsterScannerCamera;
+  if (!CameraAPI) {
+    console.error("[MonsterScanner] camera.js did not load. Simulated scan only.");
+  }
+  const CameraState = (CameraAPI && CameraAPI.CameraState) || {
+    CAMERA_OFF: "CAMERA_OFF",
+    ERROR: "ERROR",
+    RESULT: "RESULT",
+  };
+  const createCameraController =
+    (CameraAPI && CameraAPI.createCameraController) ||
+    function createMissingCamera() {
+      return {
+        getState: () => CameraState.CAMERA_OFF,
+        getPrivacyCopy: () => ({
+          primary: "No images are stored or transmitted.",
+          secondary: "Camera module unavailable — simulated scan only.",
+        }),
+        isCameraStreaming: () => false,
+        startCamera: async () => ({ ok: false, code: "UNSUPPORTED" }),
+        stopCamera: async () => {},
+        startDetection: () => {},
+        stopDetection: () => {},
+        markScanning: () => {},
+        markResult: () => {},
+      };
+    };
 
   // ===========================================================================
   // MONSTER CATALOG (unchanged fictional game data)
@@ -212,7 +238,7 @@ import { createCameraController, CameraState } from "./camera.js";
     errorMessage: document.getElementById("errorMessage"),
     btnCameraToggle: document.getElementById("btnCameraToggle"),
     cameraToggleState: document.getElementById("cameraToggleState"),
-    boneControl: document.getElementById("boneControl"),
+    boneControl: document.getElementById("btnCameraToggle"),
     opticalSensorVal: document.getElementById("opticalSensorVal"),
     standbyPrompt: document.getElementById("standbyPrompt"),
     standbySubprompt: document.getElementById("standbySubprompt"),
@@ -221,7 +247,8 @@ import { createCameraController, CameraState } from "./camera.js";
   };
 
   const CAMERA_PREF_KEY = "dsa.opticalSensor";
-  let cameraEnabled = readCameraPref();
+  let cameraAvailable = false;
+  let cameraEnabled = false;
 
   function readCameraPref() {
     try {
@@ -243,19 +270,39 @@ import { createCameraController, CameraState } from "./camera.js";
   }
 
   function isCameraEnabled() {
-    return cameraEnabled;
+    return cameraEnabled && cameraAvailable;
   }
 
   function setCameraEnabled(enabled) {
-    cameraEnabled = Boolean(enabled);
-    writeCameraPref(cameraEnabled);
+    cameraEnabled = Boolean(enabled) && cameraAvailable;
+    if (cameraAvailable) {
+      writeCameraPref(cameraEnabled);
+    }
     syncCameraToggleUI();
     updateCameraChrome();
     updatePrivacyBanner();
     console.info(
       "[MonsterScanner] Optical sensor",
-      cameraEnabled ? "ENABLED" : "DISABLED"
+      cameraEnabled ? "ENABLED" : "DISABLED",
+      cameraAvailable ? "" : "(camera unavailable)"
     );
+  }
+
+  async function refreshCameraAvailability() {
+    if (!CameraAPI || !CameraAPI.probeCameraAvailability) {
+      cameraAvailable = false;
+      cameraEnabled = false;
+      return { available: false, reason: "NO_CAMERA_MODULE" };
+    }
+    const result = await CameraAPI.probeCameraAvailability();
+    cameraAvailable = Boolean(result && result.available);
+    if (!cameraAvailable) {
+      cameraEnabled = false;
+    } else {
+      cameraEnabled = readCameraPref();
+    }
+    console.info("[MonsterScanner] Camera probe:", result);
+    return result;
   }
 
   function syncCameraToggleUI() {
@@ -263,26 +310,41 @@ import { createCameraController, CameraState } from "./camera.js";
     if (els.btnCameraToggle) {
       els.btnCameraToggle.setAttribute("aria-checked", on ? "true" : "false");
       els.btnCameraToggle.classList.toggle("is-on", on);
+      els.btnCameraToggle.classList.toggle("is-unavailable", !cameraAvailable);
+      els.btnCameraToggle.disabled = !cameraAvailable;
+      els.btnCameraToggle.setAttribute(
+        "aria-disabled",
+        cameraAvailable ? "false" : "true"
+      );
     }
     if (els.boneControl) {
       els.boneControl.classList.toggle("is-on", on);
     }
     if (els.cameraToggleState) {
-      els.cameraToggleState.textContent = on ? "CAMERA ON" : "CAMERA OFF";
+      els.cameraToggleState.textContent = !cameraAvailable
+        ? "UNAVAILABLE"
+        : on
+          ? "CAMERA ON"
+          : "CAMERA OFF";
     }
     if (els.opticalSensorVal) {
-      els.opticalSensorVal.textContent = on ? "READY" : "DISABLED";
-      els.opticalSensorVal.className = "sensor-val " + (on ? "ok" : "alert");
+      els.opticalSensorVal.textContent = !cameraAvailable
+        ? "UNAVAILABLE"
+        : on
+          ? "READY"
+          : "DISABLED";
+      els.opticalSensorVal.className =
+        "sensor-val " + (on ? "ok" : "alert");
     }
     if (els.standbyPrompt) {
       els.standbyPrompt.textContent = on
         ? "Place subject within scanning area."
-        : "Optical sensor disabled.";
+        : "Optical sensor offline.";
     }
     if (els.standbySubprompt) {
       els.standbySubprompt.textContent = on
         ? "Awaiting initiation sequence…"
-        : "Simulated analysis ready.";
+        : "Simulated analysis ready — INITIATE SCAN still works.";
     }
     if (els.standbyScanFrame) {
       els.standbyScanFrame.classList.toggle("camera-offline", !on);
@@ -339,7 +401,9 @@ import { createCameraController, CameraState } from "./camera.js";
     if (!isCameraEnabled() && !streaming) {
       copy = {
         primary: "No images are stored or transmitted.",
-        secondary: "Optical sensor disabled — simulated scan only.",
+        secondary: cameraAvailable
+          ? "Optical sensor disabled — simulated scan only."
+          : "No camera on this device — simulated scan only.",
       };
     }
 
@@ -492,10 +556,10 @@ import { createCameraController, CameraState } from "./camera.js";
 
     const boxLabel = isOther
       ? `╔══════════════════════════════╗
-  ENTITY CLASSIFICATION: FAILED
+ENTITY CLASSIFICATION: FAILED
 ╚══════════════════════════════╝`
       : `╔══════════════════════════════╗
-       ENTITY CLASSIFIED
+ENTITY CLASSIFIED
 ╚══════════════════════════════╝`;
 
     const metricsHtml = monster.metrics
@@ -612,14 +676,11 @@ import { createCameraController, CameraState } from "./camera.js";
     showScreen("scanning");
 
     if (!isCameraEnabled()) {
-      setScanningStatus("SIMULATED SCAN", "status-scanning");
-      els.diagMessage.textContent = "Optical sensor bypassed…";
-      els.scanSubprompt.textContent = "Running theatrical analysis only.";
-      els.btnAbort.hidden = false;
-      appendTerminal("Scan sequence initiated.");
-      appendTerminal("Optical sensor disabled — no camera access requested.");
-      updateCameraChrome();
-      startTheatricalScan();
+      startSimulatedScan(
+        cameraAvailable
+          ? "Optical sensor disabled — no camera access requested."
+          : "Camera unavailable — simulated scan only."
+      );
       return;
     }
 
@@ -630,25 +691,37 @@ import { createCameraController, CameraState } from "./camera.js";
     appendTerminal("Scan sequence initiated.");
     appendTerminal("Privacy mode: local camera + local face presence only.");
 
-    if (!window.isSecureContext) {
-      await camera.stopCamera({ silent: true });
-      showFriendlyError(ERROR_COPY.INSECURE_CONTEXT, "INSECURE_CONTEXT");
-      return;
-    }
-
     const started = await camera.startCamera();
     if (!started.ok) {
-      await camera.stopCamera({ silent: true, nextState: CameraState.ERROR });
+      await camera.stopCamera({ silent: true, nextState: CameraState.CAMERA_OFF });
+      if (started.code === "NO_CAMERA" || started.code === "UNSUPPORTED" || started.code === "INSECURE_CONTEXT") {
+        cameraAvailable = false;
+        cameraEnabled = false;
+      } else {
+        cameraEnabled = false;
+      }
+      syncCameraToggleUI();
       updateCameraChrome();
       updatePrivacyBanner();
-      showFriendlyError(
-        ERROR_COPY[started.code] || ERROR_COPY.CAMERA_ERROR,
-        started.code
+      appendTerminal(
+        "Camera could not start (" + started.code + ") — falling back to simulated scan."
       );
+      startSimulatedScan("Fallback: theatrical analysis only.");
       return;
     }
 
     enterPositioning();
+  }
+
+  function startSimulatedScan(reason) {
+    setScanningStatus("SIMULATED SCAN", "status-scanning");
+    els.diagMessage.textContent = "Optical sensor bypassed…";
+    els.scanSubprompt.textContent = "Running theatrical analysis only.";
+    els.btnAbort.hidden = false;
+    appendTerminal("Scan sequence initiated.");
+    if (reason) appendTerminal(reason);
+    updateCameraChrome();
+    startTheatricalScan();
   }
 
   function enterPositioning() {
@@ -831,13 +904,22 @@ import { createCameraController, CameraState } from "./camera.js";
   // Init
   // ===========================================================================
 
-  function init() {
-    syncCameraToggleUI();
+  async function init() {
+    if (els.btnCameraToggle) {
+      els.btnCameraToggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (!cameraAvailable) return;
+        sound.click();
+        setCameraEnabled(!cameraEnabled);
+      });
+    } else {
+      console.error("[MonsterScanner] Optical sensor toggle was not found in the page.");
+    }
 
-    els.btnCameraToggle.addEventListener("click", () => {
-      sound.click();
-      setCameraEnabled(!isCameraEnabled());
-    });
+    await refreshCameraAvailability();
+    syncCameraToggleUI();
+    updateCameraChrome();
+    updatePrivacyBanner();
 
     els.btnInitiate.addEventListener("click", () => {
       beginSession();
@@ -871,9 +953,10 @@ import { createCameraController, CameraState } from "./camera.js";
     updatePrivacyBanner();
 
     console.info(
-      "[MonsterScanner] v0.4 ready. Offline MediaPipe bundle. Secure context:",
-      window.isSecureContext,
-      "| Serve over HTTPS (Pi) or http://localhost — not file://"
+      "[MonsterScanner] v0.4 ready. Camera available:",
+      cameraAvailable,
+      "| Secure context:",
+      window.isSecureContext
     );
 
     window.MonsterScanner = {

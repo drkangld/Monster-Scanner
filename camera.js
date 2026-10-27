@@ -19,13 +19,56 @@
  *   SUBJECT_NOT_DETECTED | SUBJECT_DETECTED | SCANNING | RESULT | ERROR
  */
 
-import {
-  FaceDetector,
-  FilesetResolver,
-} from "./vendor/mediapipe/vision_bundle.mjs";
+(function (global) {
+  "use strict";
+
+/** Loaded on demand so the standby UI still works if the WASM bundle is blocked. */
+let FaceDetector = null;
+let FilesetResolver = null;
+
+function vendorAssetUrl(relativePath) {
+  return new URL(relativePath, global.location.href).href;
+}
+
+async function loadVisionLibrary() {
+  if (FaceDetector && FilesetResolver) {
+    return { FaceDetector, FilesetResolver };
+  }
+  const bundleUrl = vendorAssetUrl("./vendor/mediapipe/vision_bundle.mjs");
+  const mod = await import(bundleUrl);
+  FaceDetector = mod.FaceDetector;
+  FilesetResolver = mod.FilesetResolver;
+  return mod;
+}
+
+/**
+ * True only when this browser can actually open a camera.
+ * file://, missing APIs, and machines with no webcam count as unavailable.
+ */
+function probeCameraAvailability() {
+  if (!global.isSecureContext) {
+    return Promise.resolve({ available: false, reason: "INSECURE_CONTEXT" });
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return Promise.resolve({ available: false, reason: "UNSUPPORTED" });
+  }
+  if (!navigator.mediaDevices.enumerateDevices) {
+    return Promise.resolve({ available: true, reason: "API_OK" });
+  }
+  return navigator.mediaDevices
+    .enumerateDevices()
+    .then((devices) => {
+      const hasVideo = devices.some((d) => d.kind === "videoinput");
+      return {
+        available: hasVideo,
+        reason: hasVideo ? "CAMERA_FOUND" : "NO_CAMERA",
+      };
+    })
+    .catch(() => ({ available: false, reason: "ENUM_FAILED" }));
+}
 
 /** @enum {string} */
-export const CameraState = Object.freeze({
+const CameraState = Object.freeze({
   CAMERA_OFF: "CAMERA_OFF",
   CAMERA_REQUESTING_PERMISSION: "CAMERA_REQUESTING_PERMISSION",
   CAMERA_ACTIVE: "CAMERA_ACTIVE",
@@ -36,12 +79,10 @@ export const CameraState = Object.freeze({
   ERROR: "ERROR",
 });
 
-/** Resolve vendor files against this module so subdirectory deploys still work. */
-const MEDIAPIPE_WASM = new URL("./vendor/mediapipe/wasm/", import.meta.url).href;
-const FACE_MODEL = new URL(
-  "./vendor/mediapipe/models/blaze_face_short_range.tflite",
-  import.meta.url
-).href;
+const MEDIAPIPE_WASM = vendorAssetUrl("./vendor/mediapipe/wasm/");
+const FACE_MODEL = vendorAssetUrl(
+  "./vendor/mediapipe/models/blaze_face_short_range.tflite"
+);
 
 /** Require this many consecutive positive frames before declaring SUBJECT_DETECTED */
 const DETECT_STREAK_REQUIRED = 8;
@@ -55,7 +96,7 @@ const DETECT_MIN_INTERVAL_MS = 80;
  * @property {(info: string, data?: unknown) => void} [onLog]
  */
 
-export function createCameraController(options) {
+function createCameraController(options) {
   const videoEl = options.videoEl;
   const onStateChange = options.onStateChange || (() => {});
   const onLog = options.onLog || ((msg, data) => {
@@ -139,7 +180,8 @@ export function createCameraController(options) {
     detectorLoading = (async () => {
       onLog("Loading MediaPipe Face Detector from local vendor/ files (WASM + model).");
       onLog("No CDN. Inference and camera frames stay on this device.");
-      const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM);
+      const visionLib = await loadVisionLibrary();
+      const vision = await visionLib.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM);
 
       const optionsBase = {
         runningMode: "VIDEO",
@@ -148,7 +190,7 @@ export function createCameraController(options) {
       };
 
       try {
-        faceDetector = await FaceDetector.createFromOptions(vision, {
+        faceDetector = await visionLib.FaceDetector.createFromOptions(vision, {
           ...optionsBase,
           baseOptions: {
             modelAssetPath: FACE_MODEL,
@@ -158,7 +200,7 @@ export function createCameraController(options) {
         onLog("Face detector ready (local WASM, GPU delegate).");
       } catch (gpuErr) {
         onLog("GPU delegate failed; retrying with CPU", gpuErr);
-        faceDetector = await FaceDetector.createFromOptions(vision, {
+        faceDetector = await visionLib.FaceDetector.createFromOptions(vision, {
           ...optionsBase,
           baseOptions: {
             modelAssetPath: FACE_MODEL,
@@ -464,3 +506,10 @@ export function createCameraController(options) {
     ensureFaceDetector,
   };
 }
+
+  global.MonsterScannerCamera = {
+    CameraState,
+    createCameraController,
+    probeCameraAvailability,
+  };
+})(window);

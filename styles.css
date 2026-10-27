@@ -676,6 +676,7 @@ body {
 /* ---------- Bone camera toggle (instrument panel) ---------- */
 
 .bone-control {
+  appearance: none;
   flex-shrink: 0;
   align-self: center;
   width: min(100%, 420px);
@@ -684,6 +685,18 @@ body {
   border-radius: var(--radius);
   padding: 0.45rem 0.85rem 0.55rem;
   box-shadow: inset 0 0 16px rgba(57, 255, 20, 0.04);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bone-control:disabled,
+.bone-control.is-unavailable {
+  cursor: not-allowed;
+  opacity: 0.85;
+  border-color: var(--border-amber);
 }
 
 .bone-control-header {
@@ -714,21 +727,14 @@ body {
   text-shadow: 0 0 6px var(--green-glow);
 }
 
-.bone-switch {
-  appearance: none;
-  width: 100%;
+.bone-switch-row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  border: 0;
-  background: transparent;
-  padding: 0.15rem 0;
-  cursor: pointer;
-  touch-action: manipulation;
-  font-family: inherit;
+  width: 100%;
 }
 
-.bone-switch:focus-visible {
+.bone-control:focus-visible {
   outline: 1px solid var(--green);
   outline-offset: 3px;
 }
@@ -1054,12 +1060,14 @@ body {
 }
 
 .result-box {
+  display: block;
+  width: 100%;
   text-align: center;
   font-size: clamp(0.7rem, 1.6vw, 0.85rem);
   color: var(--green);
   letter-spacing: 0.08em;
   line-height: 1.35;
-  margin-bottom: 0.75rem;
+  margin: 0 auto 0.75rem;
   white-space: pre;
   text-shadow: 0 0 8px var(--green-glow);
 }

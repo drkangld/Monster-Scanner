@@ -48,7 +48,7 @@
           <span class="status-value status-standby" id="standbyStatus">STANDBY</span>
         </div>
 
-        <div class="scan-frame" id="standbyScanFrame" aria-hidden="true">
+        <div class="scan-frame camera-offline" id="standbyScanFrame" aria-hidden="true">
           <div class="frame-shutter" aria-hidden="true"></div>
           <div class="corner corner-tl"></div>
           <div class="corner corner-tr"></div>
@@ -62,19 +62,19 @@
           </div>
         </div>
 
-        <div class="bone-control is-on" id="boneControl">
-          <div class="bone-control-header">
+        <button
+          type="button"
+          class="bone-control bone-switch"
+          id="btnCameraToggle"
+          role="switch"
+          aria-checked="false"
+          aria-labelledby="cameraToggleLabel"
+        >
+          <span class="bone-control-header">
             <span class="bone-control-title" id="cameraToggleLabel">OPTICAL SENSOR</span>
-            <span class="bone-control-state" id="cameraToggleState">CAMERA ON</span>
-          </div>
-          <button
-            type="button"
-            class="bone-switch is-on"
-            id="btnCameraToggle"
-            role="switch"
-            aria-checked="true"
-            aria-labelledby="cameraToggleLabel"
-          >
+            <span class="bone-control-state" id="cameraToggleState">CAMERA OFF</span>
+          </span>
+          <span class="bone-switch-row">
             <span class="bone-switch-tick">OFF</span>
             <span class="bone-track">
               <span class="bone-ticks" aria-hidden="true"></span>
@@ -87,8 +87,8 @@
               </span>
             </span>
             <span class="bone-switch-tick">ON</span>
-          </button>
-        </div>
+          </span>
+        </button>
 
         <button type="button" class="btn btn-primary" id="btnInitiate">
           INITIATE SCAN
@@ -98,7 +98,7 @@
           <h2 class="panel-heading">SENSOR TELEMETRY</h2>
           <ul class="sensor-list" id="sensorList">
             <li><span class="sensor-name">SYSTEM STATUS</span><span class="sensor-val ok">ONLINE</span></li>
-            <li><span class="sensor-name">OPTICAL SENSOR</span><span class="sensor-val ok" id="opticalSensorVal">READY</span></li>
+            <li><span class="sensor-name">OPTICAL SENSOR</span><span class="sensor-val alert" id="opticalSensorVal">DISABLED</span></li>
             <li><span class="sensor-name">PARANORMAL SENSOR</span><span class="sensor-val ok">READY</span></li>
             <li><span class="sensor-name">LUNAR SENSOR</span><span class="sensor-val ok">READY</span></li>
             <li><span class="sensor-name">ECTOPLASMIC SENSOR</span><span class="sensor-val ok">READY</span></li>
@@ -211,6 +211,7 @@
     Never save, upload, or transmit images / video / face identity data.
     All JS/WASM/model assets are served from this host. No internet required.
   -->
-  <script type="module" src="app.js"></script>
+  <script src="camera.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
