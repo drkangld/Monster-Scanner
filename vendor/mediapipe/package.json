@@ -1,0 +1,6 @@
+{
+  "name": "@mediapipe/tasks-vision",
+  "version": "0.10.18",
+  "license": "Apache-2.0",
+  "note": "Vendored copy for Monster Scanner v0.3 offline/air-gapped deploy. Runtime files only."
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Vampire">
+  <circle cx="64" cy="64" r="58" fill="#0a120e" stroke="#1a8a0a" stroke-width="2"/>
+  <path d="M20 86 L64 22 L108 86 L64 70 Z" fill="#0d1812" stroke="#39ff14" stroke-width="2"/>
+  <circle cx="64" cy="58" r="16" fill="#050806" stroke="#ffb000" stroke-width="1.8"/>
+  <path d="M58 66 L61 76 L64 66 L67 76 L70 66" fill="none" stroke="#39ff14" stroke-width="1.6"/>
+  <path d="M24 96 H104" stroke="#39ff14" stroke-width="2"/>
+</svg>

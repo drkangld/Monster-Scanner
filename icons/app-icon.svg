@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bio-Spectral Entity Analyzer">
+  <rect width="128" height="128" rx="24" fill="#050806"/>
+  <circle cx="64" cy="64" r="50" fill="none" stroke="#1a8a0a" stroke-width="2"/>
+  <circle cx="64" cy="64" r="40" fill="none" stroke="#39ff14" stroke-width="1.5" opacity="0.7"/>
+  <polygon points="64,22 100,42 100,86 64,106 28,86 28,42" fill="none" stroke="#39ff14" stroke-width="2.2"/>
+  <circle cx="64" cy="64" r="14" fill="#0a120e" stroke="#ffb000" stroke-width="2"/>
+  <circle cx="64" cy="64" r="5" fill="#39ff14"/>
+  <path d="M64 30 V42 M64 86 V98 M30 64 H42 M86 64 H98" stroke="#ffb000" stroke-width="2"/>
+  <path d="M40 40 L48 48 M88 40 L80 48 M40 88 L48 80 M88 88 L80 80" stroke="#39ff14" stroke-width="1.6"/>
+</svg>

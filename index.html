@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Bio-Spectral Entity Analyzer — fictional Halloween scanner. No images stored or transmitted." />
+  <!-- Privacy: no analytics, tracking, or telemetry. Camera frames never leave this device. -->
+  <title>Bio-Spectral Entity Analyzer</title>
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Scan-line overlay (pure CSS decoration) -->
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-badges">
+        <span class="badge badge-warn">CLASSIFIED</span>
+        <span class="badge badge-live" id="liveBadge">
+          <span class="pulse-dot"></span> LIVE
+        </span>
+      </div>
+      <h1 class="title">BIO-SPECTRAL ENTITY ANALYZER</h1>
+      <p class="subtitle">Department of Supernatural Affairs</p>
+      <div class="privacy-note" id="privacyNote" role="status" aria-live="polite">
+        <p class="privacy-primary">
+          <img class="privacy-icon" src="icons/lock.svg" width="14" height="14" alt="" />
+          <span id="privacyPrimary">No images are stored or transmitted.</span>
+        </p>
+        <p class="privacy-secondary" id="privacySecondary" hidden></p>
+      </div>
+    </header>
+
+    <!-- Main panel: screens swap via JS -->
+    <main class="main-panel" id="mainPanel" aria-live="polite">
+
+      <!-- ========== STANDBY SCREEN ========== -->
+      <section class="screen screen-active" id="screenStandby" data-screen="standby">
+        <div class="status-banner">
+          <span class="status-label">STATUS:</span>
+          <span class="status-value status-standby" id="standbyStatus">STANDBY</span>
+        </div>
+
+        <div class="scan-frame" aria-hidden="true">
+          <div class="corner corner-tl"></div>
+          <div class="corner corner-tr"></div>
+          <div class="corner corner-bl"></div>
+          <div class="corner corner-br"></div>
+          <div class="frame-inner">
+            <div class="frame-reticule"></div>
+            <p class="frame-prompt">Place subject within scanning area.</p>
+            <p class="frame-subprompt">Awaiting initiation sequence…</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnInitiate">
+          INITIATE SCAN
+        </button>
+
+        <aside class="sensor-panel" aria-label="System status panel">
+          <h2 class="panel-heading">SENSOR TELEMETRY</h2>
+          <ul class="sensor-list" id="sensorList">
+            <li><span class="sensor-name">SYSTEM STATUS</span><span class="sensor-val ok">ONLINE</span></li>
+            <li><span class="sensor-name">PARANORMAL SENSOR</span><span class="sensor-val ok">READY</span></li>
+            <li><span class="sensor-name">LUNAR SENSOR</span><span class="sensor-val ok">READY</span></li>
+            <li><span class="sensor-name">ECTOPLASMIC SENSOR</span><span class="sensor-val ok">READY</span></li>
+            <li><span class="sensor-name">BRAIN ACTIVITY SENSOR</span><span class="sensor-val warn">QUESTIONABLE</span></li>
+          </ul>
+        </aside>
+      </section>
+
+      <!-- ========== SCANNING / POSITIONING SCREEN ========== -->
+      <section class="screen" id="screenScanning" data-screen="scanning" hidden>
+        <div class="status-banner">
+          <span class="status-label">STATUS:</span>
+          <span class="status-value status-scanning" id="scanningStatus">SCANNING</span>
+        </div>
+
+        <div class="scan-frame scanning-active" id="activeScanFrame">
+          <!-- Live camera sits behind existing scanner graphics. Never recorded. -->
+          <video
+            id="cameraVideo"
+            class="camera-video"
+            playsinline
+            webkit-playsinline
+            muted
+            autoplay
+          ></video>
+          <div class="camera-dim" aria-hidden="true"></div>
+
+          <div class="corner corner-tl"></div>
+          <div class="corner corner-tr"></div>
+          <div class="corner corner-bl"></div>
+          <div class="corner corner-br"></div>
+          <div class="frame-inner">
+            <div class="sweep-beam" id="sweepBeam" hidden></div>
+            <div class="frame-reticule" id="scanReticule"></div>
+            <p class="diag-message" id="diagMessage">Initializing bio-spectral analyzer…</p>
+            <p class="frame-subprompt" id="scanSubprompt"></p>
+          </div>
+        </div>
+
+        <div class="progress-block" id="progressBlock" hidden>
+          <div class="progress-meta">
+            <span>ANALYSIS PROGRESS</span>
+            <span id="progressPct">0%</span>
+          </div>
+          <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+
+        <div class="terminal" id="terminalBlock" aria-hidden="true">
+          <pre class="terminal-log" id="terminalLog"></pre>
+        </div>
+
+        <button type="button" class="btn btn-secondary" id="btnAbort" hidden>
+          RETURN TO STANDBY
+        </button>
+      </section>
+
+      <!-- ========== RESULT SCREEN ========== -->
+      <section class="screen" id="screenResult" data-screen="result" hidden>
+        <div class="status-banner">
+          <span class="status-label">STATUS:</span>
+          <span class="status-value status-classified" id="resultStatus">CLASSIFIED</span>
+        </div>
+
+        <div class="result-card" id="resultCard">
+          <!-- Populated by app.js from MONSTER_DATA -->
+        </div>
+
+        <div class="result-actions">
+          <button type="button" class="btn btn-primary" id="btnScanAgain">
+            SCAN AGAIN
+          </button>
+          <p class="auto-reset-note" id="autoResetNote">Auto-reset in <span id="resetCountdown">18</span>s</p>
+        </div>
+      </section>
+
+      <!-- ========== ERROR SCREEN ========== -->
+      <section class="screen" id="screenError" data-screen="error" hidden>
+        <div class="status-banner">
+          <span class="status-label">STATUS:</span>
+          <span class="status-value status-failed" id="errorStatus">SENSOR OFFLINE</span>
+        </div>
+
+        <div class="error-card" id="errorCard">
+          <p class="error-title">SUPERNATURAL SENSOR OFFLINE</p>
+          <p class="error-message" id="errorMessage">Camera access was not granted.</p>
+          <p class="error-hint">Please ask the Monster Scanner Operator for assistance.</p>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnErrorStandby">
+          RETURN TO STANDBY
+        </button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>DSA UNIT 734 · FICTIONAL ENTERTAINMENT DEVICE</span>
+      <span class="footer-sep">·</span>
+      <span>v0.3 · OFFLINE BUNDLE · NO CDN · NO UPLOAD</span>
+    </footer>
+  </div>
+
+  <!--
+    Architecture (v0.3):
+      iPad/browser camera → temporary local MediaStream
+      → local MediaPipe (vendored WASM + model, no CDN)
+      → theatrical scanner → fictional random classification → camera tracks stopped
+    Never save, upload, or transmit images / video / face identity data.
+    All JS/WASM/model assets are served from this host. No internet required.
+  -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
