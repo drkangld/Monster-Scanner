@@ -1,16 +1,15 @@
 /**
- * Bio-Spectral Entity Analyzer — app.js (v0.3)
+ * Bio-Spectral Entity Analyzer — app.js (v0.4)
  * ------------------------------------------------
  * Theatrical Halloween scanner + privacy-preserving local camera.
  *
- * Screen flow (v0.3):
- *   STANDBY
+ * Screen flow (v0.4):
+ *   STANDBY (optical sensor toggle: camera on/off)
  *     → INITIATE SCAN
- *     → request camera permission
- *     → POSITIONING (live video + local face presence)
- *     → SUBJECT DETECTED
+ *     → [camera ON] permission → positioning → subject detected
+ *     → [camera OFF] skip camera; shuttered simulated scan
  *     → theatrical SCANNING (~6.5s)
- *     → stop all camera tracks
+ *     → stop all camera tracks (if any)
  *     → RESULT (fictional random classification)
  *     → auto-reset or Scan Again
  *
@@ -47,7 +46,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "werewolf",
       name: "WEREWOLF",
-      icon: "icons/werewolf.svg",
+      icon: "icons/werewolf.png",
       metrics: [
         { key: "LYCANTHROPIC ACTIVITY", value: "EXTREME" },
         { key: "LUNAR SENSITIVITY", value: "ELEVATED" },
@@ -60,7 +59,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "witch",
       name: "WITCH",
-      icon: "icons/witch.svg",
+      icon: "icons/witch.png",
       metrics: [
         { key: "SPELL RESIDUE", value: "POTENT" },
         { key: "BROOM AFFINITY", value: "CONFIRMED" },
@@ -73,7 +72,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "zombie",
       name: "ZOMBIE",
-      icon: "icons/zombie.svg",
+      icon: "icons/zombie.png",
       metrics: [
         { key: "MOTOR FUNCTION", value: "DEGRADED" },
         { key: "BRAIN CRAVING", value: "ACTIVE" },
@@ -86,7 +85,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "ghost",
       name: "GHOST",
-      icon: "icons/ghost.svg",
+      icon: "icons/ghost.png",
       metrics: [
         { key: "CORPOREAL DENSITY", value: "NEAR ZERO" },
         { key: "CHAIN RATTLE", value: "OPTIONAL" },
@@ -99,7 +98,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "vampire",
       name: "VAMPIRE",
-      icon: "icons/vampire.svg",
+      icon: "icons/vampire.png",
       metrics: [
         { key: "FANG STATUS", value: "PRESENT" },
         { key: "GARLIC TOLERANCE", value: "CRITICAL FAILURE" },
@@ -112,7 +111,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "skeleton",
       name: "SKELETON",
-      icon: "icons/skeleton.svg",
+      icon: "icons/skeleton.png",
       metrics: [
         { key: "CALCIUM LEVELS", value: "LITERAL" },
         { key: "FLESH COVERAGE", value: "0%" },
@@ -125,7 +124,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "pumpkin",
       name: "PUMPKIN",
-      icon: "icons/pumpkin.svg",
+      icon: "icons/pumpkin.png",
       metrics: [
         { key: "ORANGE SATURATION", value: "LEGENDARY" },
         { key: "INTERNAL CANDLE", value: "SUSPECTED" },
@@ -138,7 +137,7 @@ import { createCameraController, CameraState } from "./camera.js";
     {
       id: "other",
       name: "UNKNOWN",
-      icon: "icons/other.svg",
+      icon: "icons/other.png",
       isOther: true,
       metrics: [
         { key: "ENTITY MATCH", value: "NONE" },
@@ -211,7 +210,89 @@ import { createCameraController, CameraState } from "./camera.js";
     sweepBeam: document.getElementById("sweepBeam"),
     scanReticule: document.getElementById("scanReticule"),
     errorMessage: document.getElementById("errorMessage"),
+    btnCameraToggle: document.getElementById("btnCameraToggle"),
+    cameraToggleState: document.getElementById("cameraToggleState"),
+    boneControl: document.getElementById("boneControl"),
+    opticalSensorVal: document.getElementById("opticalSensorVal"),
+    standbyPrompt: document.getElementById("standbyPrompt"),
+    standbySubprompt: document.getElementById("standbySubprompt"),
+    standbyScanFrame: document.getElementById("standbyScanFrame"),
+    standbyStatus: document.getElementById("standbyStatus"),
   };
+
+  const CAMERA_PREF_KEY = "dsa.opticalSensor";
+  let cameraEnabled = readCameraPref();
+
+  function readCameraPref() {
+    try {
+      const stored = window.localStorage.getItem(CAMERA_PREF_KEY);
+      if (stored === "off") return false;
+      if (stored === "on") return true;
+    } catch (_) {
+      /* private mode / blocked storage */
+    }
+    return true;
+  }
+
+  function writeCameraPref(enabled) {
+    try {
+      window.localStorage.setItem(CAMERA_PREF_KEY, enabled ? "on" : "off");
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function isCameraEnabled() {
+    return cameraEnabled;
+  }
+
+  function setCameraEnabled(enabled) {
+    cameraEnabled = Boolean(enabled);
+    writeCameraPref(cameraEnabled);
+    syncCameraToggleUI();
+    updateCameraChrome();
+    updatePrivacyBanner();
+    console.info(
+      "[MonsterScanner] Optical sensor",
+      cameraEnabled ? "ENABLED" : "DISABLED"
+    );
+  }
+
+  function syncCameraToggleUI() {
+    const on = isCameraEnabled();
+    if (els.btnCameraToggle) {
+      els.btnCameraToggle.setAttribute("aria-checked", on ? "true" : "false");
+      els.btnCameraToggle.classList.toggle("is-on", on);
+    }
+    if (els.boneControl) {
+      els.boneControl.classList.toggle("is-on", on);
+    }
+    if (els.cameraToggleState) {
+      els.cameraToggleState.textContent = on ? "CAMERA ON" : "CAMERA OFF";
+    }
+    if (els.opticalSensorVal) {
+      els.opticalSensorVal.textContent = on ? "READY" : "DISABLED";
+      els.opticalSensorVal.className = "sensor-val " + (on ? "ok" : "alert");
+    }
+    if (els.standbyPrompt) {
+      els.standbyPrompt.textContent = on
+        ? "Place subject within scanning area."
+        : "Optical sensor disabled.";
+    }
+    if (els.standbySubprompt) {
+      els.standbySubprompt.textContent = on
+        ? "Awaiting initiation sequence…"
+        : "Simulated analysis ready.";
+    }
+    if (els.standbyScanFrame) {
+      els.standbyScanFrame.classList.toggle("camera-offline", !on);
+    }
+    if (els.standbyStatus) {
+      els.standbyStatus.textContent = on ? "STANDBY" : "STANDBY — NO CAMERA";
+      els.standbyStatus.classList.toggle("status-offline", !on);
+      els.standbyStatus.classList.toggle("status-standby", on);
+    }
+  }
 
   /** @type {number[]} */
   let scanTimers = [];
@@ -252,7 +333,16 @@ import { createCameraController, CameraState } from "./camera.js";
   });
 
   function updatePrivacyBanner() {
-    const copy = camera.getPrivacyCopy();
+    const streaming = camera.isCameraStreaming();
+    let copy = camera.getPrivacyCopy();
+
+    if (!isCameraEnabled() && !streaming) {
+      copy = {
+        primary: "No images are stored or transmitted.",
+        secondary: "Optical sensor disabled — simulated scan only.",
+      };
+    }
+
     els.privacyPrimary.textContent = copy.primary;
     if (copy.secondary) {
       els.privacySecondary.textContent = copy.secondary;
@@ -262,7 +352,6 @@ import { createCameraController, CameraState } from "./camera.js";
       els.privacySecondary.hidden = true;
     }
 
-    const streaming = camera.isCameraStreaming();
     els.privacyNote.classList.toggle("is-camera-active", streaming);
     els.privacyNote.classList.toggle(
       "is-camera-off-post",
@@ -273,6 +362,10 @@ import { createCameraController, CameraState } from "./camera.js";
   function updateCameraChrome() {
     const streaming = camera.isCameraStreaming();
     els.activeScanFrame.classList.toggle("camera-on", streaming);
+    els.activeScanFrame.classList.toggle(
+      "camera-offline",
+      !streaming && !isCameraEnabled()
+    );
   }
 
   // ===========================================================================
@@ -430,7 +523,7 @@ import { createCameraController, CameraState } from "./camera.js";
     els.resultCard.innerHTML = `
       <div class="result-box ${isOther ? "failed" : ""}">${boxLabel}</div>
       <div class="result-monster">
-        <img class="result-icon" src="${escapeHtml(monster.icon)}" alt="" width="96" height="96" />
+        <img class="result-icon" src="${escapeHtml(monster.icon)}" alt="" width="160" height="160" />
         <h2 class="result-name ${isOther ? "failed" : ""}">${escapeHtml(monster.name)}</h2>
       </div>
       ${extra}
@@ -518,6 +611,18 @@ import { createCameraController, CameraState } from "./camera.js";
     resetScanUI();
     showScreen("scanning");
 
+    if (!isCameraEnabled()) {
+      setScanningStatus("SIMULATED SCAN", "status-scanning");
+      els.diagMessage.textContent = "Optical sensor bypassed…";
+      els.scanSubprompt.textContent = "Running theatrical analysis only.";
+      els.btnAbort.hidden = false;
+      appendTerminal("Scan sequence initiated.");
+      appendTerminal("Optical sensor disabled — no camera access requested.");
+      updateCameraChrome();
+      startTheatricalScan();
+      return;
+    }
+
     setScanningStatus("REQUESTING ACCESS", "status-scanning");
     els.diagMessage.textContent = "Initializing camera sensors…";
     els.scanSubprompt.textContent = "Permission may be required.";
@@ -592,7 +697,9 @@ import { createCameraController, CameraState } from "./camera.js";
   }
 
   function startTheatricalScan() {
-    camera.markScanning();
+    if (camera.isCameraStreaming()) {
+      camera.markScanning();
+    }
     setScanningStatus("SCANNING", "status-scanning");
     els.btnAbort.hidden = true;
     els.progressBlock.hidden = false;
@@ -638,7 +745,11 @@ import { createCameraController, CameraState } from "./camera.js";
         : "Entity matched: " + monster.name,
       monster.isOther ? "line-alert" : "line-warn"
     );
-    appendTerminal("Shutting down camera tracks…");
+    if (camera.isCameraStreaming()) {
+      appendTerminal("Shutting down camera tracks…");
+    } else {
+      appendTerminal("No camera session to close.");
+    }
 
     // CRITICAL: stop every track before showing result
     await camera.stopCamera({ nextState: CameraState.RESULT });
@@ -721,6 +832,13 @@ import { createCameraController, CameraState } from "./camera.js";
   // ===========================================================================
 
   function init() {
+    syncCameraToggleUI();
+
+    els.btnCameraToggle.addEventListener("click", () => {
+      sound.click();
+      setCameraEnabled(!isCameraEnabled());
+    });
+
     els.btnInitiate.addEventListener("click", () => {
       beginSession();
     });
@@ -749,20 +867,22 @@ import { createCameraController, CameraState } from "./camera.js";
 
     bindLifecycleShutdown();
     showScreen("standby");
+    updateCameraChrome();
     updatePrivacyBanner();
 
     console.info(
-      "[MonsterScanner] v0.3 ready. Offline MediaPipe bundle. Secure context:",
+      "[MonsterScanner] v0.4 ready. Offline MediaPipe bundle. Secure context:",
       window.isSecureContext,
       "| Serve over HTTPS (Pi) or http://localhost — not file://"
     );
 
     window.MonsterScanner = {
-      version: "0.3",
+      version: "0.4",
       monsters: MONSTER_DATA,
       CameraState,
       getCameraState: () => camera.getState(),
       isCameraStreaming: () => camera.isCameraStreaming(),
+      isCameraEnabled,
       forceNext(id) {
         forceNextId = id;
         console.info("[MonsterScanner] Next classification forced to:", id);

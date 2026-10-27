@@ -48,16 +48,46 @@
           <span class="status-value status-standby" id="standbyStatus">STANDBY</span>
         </div>
 
-        <div class="scan-frame" aria-hidden="true">
+        <div class="scan-frame" id="standbyScanFrame" aria-hidden="true">
+          <div class="frame-shutter" aria-hidden="true"></div>
           <div class="corner corner-tl"></div>
           <div class="corner corner-tr"></div>
           <div class="corner corner-bl"></div>
           <div class="corner corner-br"></div>
           <div class="frame-inner">
             <div class="frame-reticule"></div>
-            <p class="frame-prompt">Place subject within scanning area.</p>
-            <p class="frame-subprompt">Awaiting initiation sequence…</p>
+            <p class="frame-offline-tag">NO OPTICAL INPUT</p>
+            <p class="frame-prompt" id="standbyPrompt">Place subject within scanning area.</p>
+            <p class="frame-subprompt" id="standbySubprompt">Awaiting initiation sequence…</p>
           </div>
+        </div>
+
+        <div class="bone-control is-on" id="boneControl">
+          <div class="bone-control-header">
+            <span class="bone-control-title" id="cameraToggleLabel">OPTICAL SENSOR</span>
+            <span class="bone-control-state" id="cameraToggleState">CAMERA ON</span>
+          </div>
+          <button
+            type="button"
+            class="bone-switch is-on"
+            id="btnCameraToggle"
+            role="switch"
+            aria-checked="true"
+            aria-labelledby="cameraToggleLabel"
+          >
+            <span class="bone-switch-tick">OFF</span>
+            <span class="bone-track">
+              <span class="bone-ticks" aria-hidden="true"></span>
+              <span class="bone-thumb">
+                <span class="bone" aria-hidden="true">
+                  <span class="bone-end"><i></i><i></i></span>
+                  <span class="bone-bar"></span>
+                  <span class="bone-end"><i></i><i></i></span>
+                </span>
+              </span>
+            </span>
+            <span class="bone-switch-tick">ON</span>
+          </button>
         </div>
 
         <button type="button" class="btn btn-primary" id="btnInitiate">
@@ -68,6 +98,7 @@
           <h2 class="panel-heading">SENSOR TELEMETRY</h2>
           <ul class="sensor-list" id="sensorList">
             <li><span class="sensor-name">SYSTEM STATUS</span><span class="sensor-val ok">ONLINE</span></li>
+            <li><span class="sensor-name">OPTICAL SENSOR</span><span class="sensor-val ok" id="opticalSensorVal">READY</span></li>
             <li><span class="sensor-name">PARANORMAL SENSOR</span><span class="sensor-val ok">READY</span></li>
             <li><span class="sensor-name">LUNAR SENSOR</span><span class="sensor-val ok">READY</span></li>
             <li><span class="sensor-name">ECTOPLASMIC SENSOR</span><span class="sensor-val ok">READY</span></li>
@@ -84,8 +115,9 @@
         </div>
 
         <div class="scan-frame scanning-active" id="activeScanFrame">
+          <div class="frame-shutter" aria-hidden="true"></div>
           <!-- Live camera sits behind existing scanner graphics. Never recorded. -->
-          <video
+          <video>
             id="cameraVideo"
             class="camera-video"
             playsinline
@@ -167,12 +199,12 @@
     <footer class="footer">
       <span>DSA UNIT 734 · FICTIONAL ENTERTAINMENT DEVICE</span>
       <span class="footer-sep">·</span>
-      <span>v0.3 · OFFLINE BUNDLE · NO CDN · NO UPLOAD</span>
+      <span>v0.4 · OFFLINE BUNDLE · NO CDN · NO UPLOAD</span>
     </footer>
   </div>
 
   <!--
-    Architecture (v0.3):
+    Architecture (v0.4):
       iPad/browser camera → temporary local MediaStream
       → local MediaPipe (vendored WASM + model, no CDN)
       → theatrical scanner → fictional random classification → camera tracks stopped

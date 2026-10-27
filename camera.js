@@ -1,5 +1,5 @@
 /**
- * camera.js — Privacy-preserving local camera + face presence detection (v0.3)
+ * camera.js — Privacy-preserving local camera + face presence detection (v0.4)
  * ---------------------------------------------------------------------------
  * PURPOSE OF FACE DETECTION:
  *   Answer ONLY: "Is a face visible right now?"

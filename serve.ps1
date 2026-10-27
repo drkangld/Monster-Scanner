@@ -1,4 +1,4 @@
-# Bio-Spectral Entity Analyzer — simple local server (v0.3)
+# Bio-Spectral Entity Analyzer — simple local server (v0.4)
 # Camera APIs require http://localhost (not file://)
 # All MediaPipe assets are local under vendor/ — no internet required.
 

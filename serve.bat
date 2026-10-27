@@ -1,5 +1,5 @@
 @echo off
-REM Bio-Spectral Entity Analyzer — simple local server (Windows, v0.3)
+REM Bio-Spectral Entity Analyzer — simple local server (Windows, v0.4)
 REM Camera APIs require http://localhost (not file://)
 REM All MediaPipe assets are local under vendor/ — no internet required.
 
