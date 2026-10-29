@@ -226,7 +226,7 @@ function createCameraController(options) {
 
   /**
    * Request camera permission and start live preview.
-   * Prefers rear/environment camera on mobile / iPad.
+   * Prefers front/user camera on mobile / iPad.
    */
   async function startCamera() {
     lastErrorCode = null;
@@ -262,7 +262,7 @@ function createCameraController(options) {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          facingMode: { ideal: "environment" },
+          facingMode: { ideal: "user" },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
