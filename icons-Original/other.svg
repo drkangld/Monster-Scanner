@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Unknown entity">
-  <circle cx="64" cy="64" r="58" fill="#0a120e" stroke="#ff3344" stroke-width="2"/>
-  <circle cx="64" cy="64" r="50" fill="none" stroke="#ff3344" stroke-width="1" opacity="0.35" stroke-dasharray="6 5"/>
-  <text x="64" y="80" text-anchor="middle" font-family="Consolas, monospace" font-size="56" font-weight="700" fill="#ff3344">?</text>
-  <path d="M28 28 L40 40 M100 28 L88 40 M28 100 L40 88 M100 100 L88 88" stroke="#ffb000" stroke-width="2"/>
-</svg>

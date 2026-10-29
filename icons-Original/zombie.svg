@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Zombie">
-  <circle cx="64" cy="64" r="58" fill="#0a120e" stroke="#1a8a0a" stroke-width="2"/>
-  <rect x="36" y="30" width="56" height="68" rx="18" fill="#0d1812" stroke="#39ff14" stroke-width="2.2"/>
-  <path d="M48 58 L58 62 M70 58 L80 54" stroke="#ffb000" stroke-width="3" stroke-linecap="round"/>
-  <path d="M50 84 Q64 76 78 86" fill="none" stroke="#39ff14" stroke-width="2"/>
-  <path d="M92 48 L108 40 M92 70 L110 74" stroke="#39ff14" stroke-width="2"/>
-  <circle cx="108" cy="40" r="3" fill="#ff6a00"/>
-  <circle cx="110" cy="74" r="3" fill="#ff6a00"/>
-</svg>

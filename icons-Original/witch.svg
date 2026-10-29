@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Witch">
-  <circle cx="64" cy="64" r="58" fill="#0a120e" stroke="#1a8a0a" stroke-width="2"/>
-  <path d="M64 18 L110 78 H18 Z" fill="#0d1812" stroke="#39ff14" stroke-width="2.2"/>
-  <ellipse cx="64" cy="80" rx="46" ry="8" fill="none" stroke="#ffb000" stroke-width="2"/>
-  <path d="M64 36 L64 72" stroke="#39ff14" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="64" cy="50" r="5" fill="#ffb000"/>
-  <path d="M22 92 C40 108 88 108 106 92" fill="none" stroke="#39ff14" stroke-width="1.8"/>
-</svg>
